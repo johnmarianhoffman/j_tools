@@ -1,4 +1,9 @@
-function h=viewer(image_stack)
+function h=viewer_seg_edit(image_stack,seg)
+
+% Masking metadata
+    handles.threshold=-950;
+    handles.mask=seg;
+
 % Extremely lightweight, hotkey driven image viewer
 
     if nargin<1
@@ -16,7 +21,7 @@ function h=viewer(image_stack)
     %Set default variables
     handles.curr_image=1;
     handles.image_stack=image_stack;
-    handles.clims=[min(img_1(:)) max(img_1(:))];
+    handles.clims=[-1400 200];%[min(img_1(:)) max(img_1(:))];
     handles.flags.isplaying=false;
     handles.play_speed=1;
     handles.previous_save_location=pwd;
@@ -26,8 +31,19 @@ function h=viewer(image_stack)
     h=handles.fig;
     fig_pos=get(handles.fig,'position');
     handles.axes=axes('position',[0 0 1 1]);
+    set(handles.axes,'Parent',handles.fig);
     handles.counter=annotation('textbox',[0.02 0.02 .25 .1],'String',sprintf('%i/%i',handles.curr_image,size(handles.image_stack,3)),'backgroundcolor','black','color','white','facealpha',0,'edgecolor','none');
-    
+    handles.threshold_text=annotation('textbox',[0.02 0.1 .25 .1],'String',sprintf('%d',handles.threshold),'fontsize',20,'backgroundcolor','black','color','white','facealpha',0,'edgecolor','none');
+    handles.img=imshow(handles.image_stack(:,:,handles.curr_image),handles.clims,'Parent',handles.axes);
+
+    % Set up the overlay
+    im_size=size(handles.image_stack(:,:,1));
+    green = cat(3, zeros(im_size), ones(im_size), zeros(im_size));
+    hold on
+    handles.img_overlay = imshow(green,'Parent',handles.axes);
+    hold off
+    set(handles.img_overlay, 'AlphaData', handles.mask(:,:,handles.curr_image))
+
     % Set Callbacks
     set(handles.fig,'KeyPressFcn',@keypress_callback);
     set(handles.fig,'WindowScrollWheelFcn',@scroll_fcn);
@@ -62,6 +78,8 @@ function keypress_callback(hObject,eventdata)
             j_imrect('1',handles.axes);
           case 'w' % access window level
             set_contrast();
+          case 't'
+            edit_mask();
           case 's'
             answer=inputdlg('Enter a variable name:');
             assignin('base',answer{1},handles.image_stack);
@@ -147,6 +165,23 @@ function keypress_callback(hObject,eventdata)
         
         handles.clims=get(handles.axes,'clim');
         guidata(handles.fig,handles);
+    end
+
+    function edit_mask()
+
+    % drop roi
+        r=imrect();
+        m=createMask(r,handles.img);
+
+        tmp_mask=handles.mask(:,:,handles.curr_image);
+        tmp_mask(m&tmp_mask)=false;
+
+        handles.mask(:,:,handles.curr_image)=tmp_mask;
+
+        delete(r)
+
+        guidata(handles.fig,handles);
+        update(handles.fig)
     end
 
     function save_curr_image()
@@ -244,7 +279,11 @@ end
 
 function update(fig)
     handles=guidata(fig);
-    imshow(handles.image_stack(:,:,handles.curr_image),handles.clims,'Parent',handles.axes);
+    set(handles.img,'cdata',handles.image_stack(:,:,handles.curr_image))
+
+    % Make a truecolor all-green image.
+    set(handles.img_overlay, 'AlphaData', handles.mask(:,:,handles.curr_image))
     set(handles.counter,'string',sprintf('%i/%i',handles.curr_image,size(handles.image_stack,3)));
+    set(handles.threshold_text,'string',sprintf('%s',num2str(handles.threshold)));   
     drawnow;
 end
