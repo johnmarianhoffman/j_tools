@@ -12,7 +12,13 @@ function h=viewer(image_stack)
     height=size(image_stack,1);
     img_1=image_stack(:,:,1);
     fig_pos=j_PositionVectorConvert([middle(1) middle(2) width height],'c->m');
-    
+
+    % Draw GUI
+    handles.fig=figure('ToolBar','none','MenuBar','none','position',fig_pos);
+    h=handles.fig;
+    fig_pos=get(handles.fig,'position');
+    handles.axes=axes('position',[0 0 1 1],'parent',handles.fig);
+
     %Set default variables
     handles.curr_image=1;
     handles.image_stack=image_stack;
@@ -20,14 +26,10 @@ function h=viewer(image_stack)
     handles.flags.isplaying=false;
     handles.play_speed=1;
     handles.previous_save_location=pwd;
-
-    % Draw GUI
-    handles.fig=figure('ToolBar','none','MenuBar','none','position',fig_pos);
-    h=handles.fig;
-    fig_pos=get(handles.fig,'position');
-    handles.axes=axes('position',[0 0 1 1]);
+    handles.zoom=zoom;
+    handles.flags.zoom=false;
     handles.counter=annotation('textbox',[0.02 0.02 .25 .1],'String',sprintf('%i/%i',handles.curr_image,size(handles.image_stack,3)),'backgroundcolor','black','color','white','facealpha',0,'edgecolor','none');
-    
+
     % Set Callbacks
     set(handles.fig,'KeyPressFcn',@keypress_callback);
     set(handles.fig,'WindowScrollWheelFcn',@scroll_fcn);
@@ -49,7 +51,7 @@ function keypress_callback(hObject,eventdata)
             %r.addSecondaryPositionCallback(@wed_update)
             w=j_wed(handles.image_stack,(500/512)^2,r);
             disp(w)
-            figure;
+            %figure;
             plot(w);
             assignin('base','w',w);
           case 'e' % drop elliptical roi
@@ -65,6 +67,8 @@ function keypress_callback(hObject,eventdata)
           case 's'
             answer=inputdlg('Enter a variable name:');
             assignin('base',answer{1},handles.image_stack);
+          case 'z'
+            toggle_zoom();              
           case 'space' % play images as movie
             toggle_playing();
             play();
@@ -78,6 +82,8 @@ function keypress_callback(hObject,eventdata)
             next_image();
           case 'leftarrow' % previous image
             prev_image();
+
+
         end
     elseif isequal(eventdata.Modifier{1},'control')
         % control codes
@@ -200,6 +206,18 @@ function keypress_callback(hObject,eventdata)
         handles.flags.isplaying=logical(1-handles.flags.isplaying);
         guidata(handles.fig,handles);
     end
+
+    function toggle_zoom()
+        handles.flags.zoom=logical(1-handles.flags.zoom);
+        guidata(handles.fig,handles);
+        if handles.flags.zoom
+            handles.zoom.Enable='on';
+            disp('zoom on');
+        else
+            zoom('off');
+            disp('zoom off');
+        end                
+    end 
 
     function play()
         while handles.flags.isplaying

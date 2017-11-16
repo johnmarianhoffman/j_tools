@@ -6,6 +6,7 @@ addpath(fullfile(pwd,'src/lib/'));
 addpath(fullfile(pwd,'src/tools/'));
 addpath(fullfile(pwd,'src/scratch/'));
 
+addpath(genpath(fullfile(pwd,'src/lib/')));
 
 if ~usejava('desktop');
     addpath(fullfile(pwd,'src/dev/ml_emacs/toolbox'),'-begin');
