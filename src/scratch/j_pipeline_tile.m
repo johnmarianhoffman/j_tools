@@ -1,6 +1,9 @@
 function [tiling,inset_image_stack]=j_pipeline_tile(library_dirpath,config_filepath,pipeline_id)
 c=yaml.ReadYaml(config_filepath);
 
+disp(c)
+c.doses=c.doses(end:-1:1);
+
 %% Set up our ROI
 % User can adjust these
 slice_index_on_thinnest_slice=60;
@@ -56,7 +59,8 @@ for i=1:numel(c.doses)
 end
 
 % Create the tiling that will be returned to the user
-tiling=j_tile(hu(roi_stacks),[3,12],1,true);
+%tiling=j_tile(hu(roi_stacks),[3,12],1,true);
+tiling=j_tile(hu(roi_stacks),[4,12],1,true);
 
 end
 
