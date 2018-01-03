@@ -18,6 +18,7 @@ function golf(varargin)
     global last_click;
     global state;
     global cursor;
+    global flag_force_no_collision;
         
     % Enumerate states
     states.STABLE=0;
@@ -58,7 +59,7 @@ function golf(varargin)
     colors.ball         =uint8([255, 251, 244]);
     colors.border       =uint8([0  ,   0, 0]  );
     
-    % Flags 
+    % Flags
     flag_gameover = false;
    
     % Sizes
@@ -90,8 +91,7 @@ function golf(varargin)
     handles.ax=ax;
     handles.img=img;
     handles.diagnostic_overlay=diagnostic_overlay;
-    guidata(f,handles);
-    
+    guidata(f,handles);    
 
     % Initialize world and screen
     for i=1:sizes.world_width
@@ -130,6 +130,8 @@ function golf(varargin)
     
     % Game loop
     counter=0;
+    idle_counter=0;
+    timeout=60*60;
     time=0;
     while ~flag_gameover
 
@@ -139,7 +141,15 @@ function golf(varargin)
         counter=counter+1;
         if mod(counter,15)==0
             set(diagnostic_overlay,'string',sprintf('Framerate:  %.2f fps | Mouse: %d,%d | State: %d',1/time,round(m_coord(1)),round(m_coord(2)),state));
-            counter=0;
+        end
+        
+        if state==states.STABLE
+            idle_counter=idle_counter+1;            
+            if idle_counter==timeout
+                flag_gameover=true;
+            end
+        else 
+            idle_counter=0;
         end
 
         % STATE MACHINE =========================================        
@@ -150,8 +160,7 @@ function golf(varargin)
             case states.EVOLVING
                 cursor.pos=m_coord;
                 cursor.pos(2)=sizes.screen_height-m_coord(2);
-            case states.FIRING 
-                
+            case states.FIRING                 
         end
                           
         % LOGIC =========================================
@@ -164,14 +173,23 @@ function golf(varargin)
             tmp_pos=ball.pos+tmp_velocity*time;
             
             % Collision detection
-            [collision_flag,type]=is_collision(sizes);
+            if flag_force_no_collision
+                collision_flag=false;
+                flag_force_no_collision=false;
+            else
+                [collision_flag,type,normal]=is_collision(sizes,tmp_pos);
+            end
+            
             if collision_flag
                 if type==1
-                    ball.prev_pos=tmp_prev_pos;
-                    ball.velocity=ball.bounce*[ball.velocity(1),-ball.velocity(2)];
+                    ball.prev_pos=ball.prev_pos;
+                    ball.velocity= ball.bounce*(ball.velocity-2*dot(ball.velocity,normal)*normal);
+                    if isnan(ball.velocity)
+                        ball.velocity=[0,0];
+                    end
                     ball.pos=ball.pos+ball.velocity*time;
                     
-                    if norm(ball.velocity)<3
+                    if norm(ball.velocity)<2
                         ball.velocity=[0,0];
                         state=states.STABLE;
                     end
@@ -184,19 +202,19 @@ function golf(varargin)
                 ball.prev_pos=tmp_prev_pos;
                 ball.pos=tmp_pos;
                 ball.velocity=tmp_velocity;
-            end            
+            end
         end
-
-        % RENDER ========================================        
+        
+        % RENDER ========================================
         render_frame(colors,sizes);
         set(img,'cdata',flipud(screen));
-
+        
         if isequal(mode,'normal')
             time=toc(t);
         else
             time=1/60;
         end
-
+        
     end
     
     delete(f);
@@ -204,33 +222,33 @@ end
 
 function initialize_screen(colors,sizes)
 
-    global world;
-    global screen;
-    
-    offset=sizes.border_size;
+global world;
+global screen;
 
-    % Map world into screen buffer
-    for i=1:sizes.world_width
-        for j=1:sizes.world_height
+offset=sizes.border_size;
 
-            if world(j,i)==0 % Border
-                screen(offset+j,offset+i,:)=colors.border;
-            elseif world(j,i)==1 % Sky
-                screen(offset+j,offset+i,:)=colors.sky;
-            elseif world(j,i)==2 % Ground
-                screen(offset+j,offset+i,:)=colors.ground;
-            else
-                % nothing
-            end
-            
+% Map world into screen buffer
+for i=1:sizes.world_width
+    for j=1:sizes.world_height
+        
+        if world(j,i)==0 % Border
+            screen(offset+j,offset+i,:)=colors.border;
+        elseif world(j,i)==1 % Sky
+            screen(offset+j,offset+i,:)=colors.sky;
+        elseif world(j,i)==2 % Ground
+            screen(offset+j,offset+i,:)=colors.ground;
+        else
+            % nothing
         end
+        
     end
+end
 end
 
 function render_frame(colors,sizes)
 
-    global world;
-    global background;
+global world;
+global background;
     global screen;
     global ball;
     global m_coord;
@@ -279,8 +297,7 @@ function render_frame(colors,sizes)
                 elseif state==1
                     screen(j+y_offset_screen,i+x_offset_screen,:) = cursor.unavailable_color;                    
                 end
-                
-                        
+                                        
             end
         end
     end
@@ -300,11 +317,9 @@ function render_frame(colors,sizes)
         set(cursor.firing_line,'visible','off');        
     end
     
-    
-    
 end
 
-function [tf,type]=is_collision(sizes)
+function [tf,type,normal]=is_collision(sizes,pos)
     global world
     global ball
 
@@ -312,9 +327,9 @@ function [tf,type]=is_collision(sizes)
     type=0;
     normal=[0,0];
 
-    x_offset_world=round(ball.pos(1))-ball.radius;
-    y_offset_world=round(ball.pos(2))-ball.radius;
-        
+    x_offset_world=round(pos(1))-ball.radius;
+    y_offset_world=round(pos(2))-ball.radius;
+                
     % Scan over each element of the asset in the new position to see if there's ground
     for i=1:2*ball.radius
         for j=1:2*ball.radius
@@ -336,13 +351,21 @@ function [tf,type]=is_collision(sizes)
             if (ball.asset(i,j)==1) && (world(i+y_offset_world,j+x_offset_world)~=1)                
                 tf=true;
                 type=1;
-                break;
-            end        
 
-        end
-        
-        if tf
-            break;
+                % Compute normal
+                n_samples=20;
+                for ii=1:n_samples
+                    angle=2*(ii-1)*pi/n_samples;
+                    x=ball.radius*cos(angle)+pos(1);
+                    y=ball.radius*sin(angle)+pos(2);
+                    if world(round(y),round(x))==2
+                        v=pos-[x,y];
+                        normal=normal+v;
+                    end                    
+                end
+                normal=-normal/norm(normal);
+                return
+            end        
         end
     end
 end
@@ -376,6 +399,7 @@ function click_callback(h,e)
     global state
     global m_coord
     global last_click
+    global flag_force_no_collision
     
     if state==1 % Evolving, ignore mouse clicks
         return;
@@ -385,7 +409,8 @@ function click_callback(h,e)
     elseif state==2 % Firing, use current point and last point to compute velocity vector
         ball.velocity=5*(m_coord-last_click);
         ball.velocity=-ball.velocity;
-        %ball.velocity(2)=-ball.velocity(2); % flip since y axis inverted
+        flag_force_no_collision=true;
+        ball.velocity(2)=-ball.velocity(2); % flip since y axis inverted        
         state=1;
     end
 end
@@ -413,5 +438,47 @@ end
 function resize_callback(h,e)
 handles=guidata(h);
 set(handles.ax,'units','normalized','position',[0 0 1 1]);
+
+end
+
+function generate_map(sizes)
+
+    global world;
+
+    variation_factor=8; % Increasing this will make more bumps
+
+    slopes=[0 15 30 45 60 75 90];
+    
+    max_height=5/8*sizes.world_height;
+    min_height=1/8*sizes.world_height;
+
+    x=0;
+    y=randi([max_height,min_height],1,1);
+
+    curr_point=[x,y];
+    target_point=[0,0];
+    
+    while curr_point(1)<sizes.world_width
+        
+        curr_point=curr_point+[1,0];
+        
+        % Calculate the x distance we'll move
+        run=randi([1,sizes.world_width/variation_factor]);
+
+        % grab a slope
+        n=randi([1,7],1,1);
+        m=atand(slopes(n));
+        if randi([0,1],1,1)
+            m=-m;
+        end
+        
+        % step through columns and fill in everything below our line
+        %for i=1:
+        
+
+    end
+    
+    
+
 
 end
