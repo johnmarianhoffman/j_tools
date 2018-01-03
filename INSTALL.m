@@ -5,6 +5,7 @@ addpath(fullfile(pwd,'src/dev/aliases/'));
 addpath(fullfile(pwd,'src/lib/'));
 addpath(fullfile(pwd,'src/tools/'));
 addpath(fullfile(pwd,'src/scratch/'));
+addpath(fullfile(pwd,'src/games/'));
 
 addpath(genpath(fullfile(pwd,'src/lib/')));
 

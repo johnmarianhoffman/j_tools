@@ -5,6 +5,6 @@ function save_mat_img(image,scale,filepath)
         scale(2)=max(image(:));
     end
     
-    imwrite(mat2gray(image,scale),filepath);
+    imwrite(mat2gray(image,double(scale)),filepath);
 
 end
