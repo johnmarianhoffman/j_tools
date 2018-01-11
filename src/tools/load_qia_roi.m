@@ -2,7 +2,7 @@ function mask=load_qia_roi(filepath)
 global raw;
 global pointer;
 pointer=0;
-disp('Assuming we have 512x512 images')
+%disp('Assuming we have 512x512 images')
 
 raw=dlmread(filepath,' ');
 
@@ -13,7 +13,7 @@ while pointer < numel(raw)
     if ~exist('mask','var')
         mask=false(512,512,num_z+curr_z_slice-1);
     end    
-    disp(curr_z_slice);
+    %disp(curr_z_slice);
     num_y=pop_item();
 
     for i=1:num_y
