@@ -1,6 +1,6 @@
 function j_score_emphysema(hr2_filepath,left_lung_filepath,right_lung_filepath,results_dirpath,qa_dirpath)
 
-verbose=true;
+verbose=false;
 
 % Configure paths ======================================================================
 read_hr2_script_filepath  = '/home/john/Code/CTBB_Pipeline_Package/CTBB_Pipeline/src/read_hr2.py';
@@ -18,6 +18,20 @@ left=load_qia_roi(left_lung_filepath);
 
 log(verbose,'Loading right lung ROI...\n');
 right=load_qia_roi(right_lung_filepath);
+
+% Read HR2 metadata
+fid=fopen(tmp_hr2_filepath,'r');
+s=fread(fid)';
+fclose(fid);
+s=char(s);
+
+space_loc=strfind(s,'Spacing');
+size_loc=space_loc+7;
+spacing_bytes=double(s(size_loc));
+null_byte=size_loc+1;
+spacing_start=null_byte+1;
+
+spacing=str2num(s(spacing_start:spacing_start+spacing_bytes-1));
 
 % Pad our masks to be same dimensions as img
 n_slices_img    = size(img,3);
@@ -50,12 +64,14 @@ ra_970  = get_ra(img,lungs,-970 )/volume;
 ra_980  = get_ra(img,lungs,-980 )/volume;
 ra_990  = get_ra(img,lungs,-990 )/volume;
 ra_1000 = get_ra(img,lungs,-1000)/volume;
+range_950_856 = ra_856-ra_950;
 
 % Generate lung histogram
 log(verbose,'Calculating percentile metrics...\n');
 lung_vals     = img(lungs);
+lung_vals     = lung_vals(lung_vals<=-200);
 lung_min      = min(lung_vals(:));
-lung_max      = max(lung_vals(:));
+lung_max      = -200;%max(lung_vals(:)); % We set to -200 HU to be in accordance with Pechin's implementation of histogramcalculation
 [lung_hist,X] = hist(lung_vals,[lung_min:1:lung_max]);
 
 % Calculate Percentile Locations
@@ -67,26 +83,45 @@ perc_20 = get_perc(lung_hist,X,0.20);
 mean_lung=mean(lung_vals(:));
 median_lung=median(lung_vals(:));
 
+kurtosis = @(x) (sum((x(:)-mean(x(:))).^4)./numel(x))/(var(x(:)).^2)-3;
+kurtosis_lung=kurtosis(lung_vals(:));
+
 % Save quantitative results to disk
 log(verbose,'Saving quantitative results to disk...\n');
-warning('NOT SAVING QUANTITATIVE RESULTS TO DISK YET')
+
+% Save quantitative results
+results_filepath=fullfile(results_dirpath,'results_emphysema.yml');
+fid=fopen(results_filepath,'w');
+fprintf(fid,'PERC10: %.1f\n',perc_10);
+fprintf(fid,'PERC15: %.1f\n',perc_15);
+fprintf(fid,'PERC20: %.1f\n',perc_20);
+fprintf(fid,'RA-856: %.8f\n',ra_856);
+fprintf(fid,'RA-900: %.8f\n',ra_900);
+fprintf(fid,'RA-910: %.8f\n',ra_910);
+fprintf(fid,'RA-920: %.8f\n',ra_920);
+fprintf(fid,'RA-930: %.8f\n',ra_930);
+fprintf(fid,'RA-940: %.8f\n',ra_940);
+fprintf(fid,'RA-950: %.8f\n',ra_950);
+fprintf(fid,'RA-960: %.8f\n',ra_960);
+fprintf(fid,'RA-970: %.8f\n',ra_970);
+fprintf(fid,'RA-980: %.8f\n',ra_980);
+fprintf(fid,'Range-950-856: %.8f\n',range_950_856);
+fprintf(fid,'kurtosis: %.8f\n',kurtosis_lung);
+fprintf(fid,'mean: %.8f\n',mean_lung);
+fprintf(fid,'median: %.8f\n',median_lung);
+fprintf(fid,'volume: %.8f\n',volume*prod(spacing));
+fclose(fid);
+
+% Save lung histogram
+histogram_filepath=fullfile(results_dirpath,'histogram_lung.yml');
+fid=fopen(histogram_filepath,'w');
+for i=1:numel(X)
+    fprintf(fid,'%.1f: %d\n',X(i),lung_hist(i));
+end
+fclose(fid);
 
 % Generate visualizations ============================================================
 log(verbose,'Generating visualizations...\n');
-% Read metadata
-fid=fopen(tmp_hr2_filepath,'r');
-s=fread(fid)';
-fclose(fid);
-s=char(s);
-
-space_loc=strfind(s,'Spacing');
-size_loc=space_loc+7;
-spacing_bytes=double(s(size_loc));
-null_byte=size_loc+1;
-spacing_start=null_byte+1;
-
-spacing=str2num(s(spacing_start:spacing_start+spacing_bytes-1));
-
 % Locate the slice with the largest crossection of lung voxels (used
 % for vis)
 % NOTE: Permuting our data in place so that we don't abuse
@@ -153,6 +188,7 @@ log(verbose,'RA-970  = %.4f\n',ra_970);
 log(verbose,'RA-980  = %.4f\n',ra_980);
 log(verbose,'RA-990  = %.4f\n',ra_990);
 log(verbose,'RA-1000 = %.4f\n',ra_1000);
+log(verbose,'Range-950-856 = %.4f\n',range_950_856);
 log(verbose,'====================\n');
 
 log(verbose,'PERC results: \n');
@@ -164,9 +200,10 @@ log(verbose,'====================\n');
 
 log(verbose,'Other results:\n')
 log(verbose,'====================\n')
-log(verbose,'Mean   = %.2f HU\n',mean_lung);
-log(verbose,'Median = %.2f HU\n',median_lung);
-log(verbose,'Volume = %.2f mm^3\n',volume*prod(spacing));
+log(verbose,'Mean     = %.2f HU\n',mean_lung);
+log(verbose,'Median   = %.2f HU\n',median_lung);
+log(verbose,'Kurtosis = %.2f \n',kurtosis_lung);
+log(verbose,'Volume   = %.2f mm^3\n',volume*prod(spacing));
 log(verbose,'====================\n');
 
 log(verbose,'DONE\n');

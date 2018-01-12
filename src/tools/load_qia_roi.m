@@ -10,6 +10,9 @@ num_z=pop_item();
 
 while pointer < numel(raw)
     curr_z_slice=pop_item();
+    if curr_z_slice==0
+        return;
+    end
     if ~exist('mask','var')
         mask=false(512,512,num_z+curr_z_slice-1);
     end    
@@ -26,6 +29,7 @@ while pointer < numel(raw)
             mask(x_start:x_end,curr_y_coor,curr_z_slice)=true;
         end 
     end
+
 end
 
 end
