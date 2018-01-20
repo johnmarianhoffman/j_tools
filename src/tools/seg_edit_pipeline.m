@@ -19,6 +19,8 @@ for i=1:numel(lines)
     lines{i}=strsplit(lines{i},',');
 end
 
+log(verbose,'========================================\n');
+
 for i=1:numel(patients)
     % Build paths to hr2 file and segmentations ==============================
 
@@ -93,6 +95,7 @@ for i=1:numel(patients)
         h=viewer_seg_edit(stack,right);
         t=text(20,20,strjoin(reason,'\n'));
         set(t,'color','white');
+
         waitfor(h)
         movefile('/tmp/lung.roi','/tmp/right_lung.roi');
 
@@ -125,12 +128,9 @@ for i=1:numel(patients)
         end 
         
         % DELETE segmentations from temporary directory (to prevent accidental overwrite)
+        delete('/tmp/left_lung.roi');
+        delete('/tmp/right_lung.roi');
 
-
-
-
-
-        
         log(verbose,'========================================\n');
     end 
 

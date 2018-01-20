@@ -137,13 +137,14 @@ function keypress_callback(hObject,eventdata)
     end
 
     function save_mask()
+        fprintf(1,'Saving ROI... ');
         filepath='/tmp/lung.roi';
         %[f,p]=uiputfile({'*.roi','save_roi'});
         %if isequal(f,0)
         %   return; 
         %end
         save_qia_roi(filepath,permute(handles.mask,[2 1 3]));
-        disp('Done saving ROI')
+        fprintf(1,'DONE\n');
         handles.flags.isedited=false;
         guidata(handles.fig,handles);
     end
