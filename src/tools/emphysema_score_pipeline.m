@@ -5,17 +5,24 @@ function emphysema_score_pipeline(library,ref_library,varargin)
 % "ref_library" is the directory we're going to pull our segmentations from (if we don't already have them)
 %
 %  Both library paths need to be absolute. I guarantee nothing if they are not.
-    
+
+skip_existing=true;
 verbose=true;
 case_list_file=fullfile(library,'hr2_list.txt');
 
+if skip_existing
+    warning(sprintf(['Cases with existing results will not be ' ...
+                     'reevaluated.  Change "skip_existing" parameter ' ...
+                     'in emphysema_score_pipeline.m if you do not ' ...
+                     'want this behavior.']));
+end 
 
 if ~isempty(varargin)
     paths=varargin;
 else
     % Get file list
     log(verbose,'Generating case list  (this may take a while)...\n');
-    n_hr2=5000;
+    n_hr2=5200;
     paths=cell(n_hr2,1);
     fid=fopen(case_list_file,'r');
 
@@ -95,15 +102,20 @@ parfor i=1:size(paths,1)
         if ~ret_code % (1 if success, 0 if fail)
             ERROR_CODE=4;
             codes=[codes ' ' num2str(ERROR_CODE)];
-        end         
+        end
     end
 
+    % Check if we already have results data
+    results_filepath=fullfile(results_dirpath,'results_emphysema.yml')
+    if exist(results_filepath,'file') && skip_existing
+        ERROR_CODE=5;
+    end
+    
     % CALL SCORING FUNCTION ============================================================
     if ~ERROR_CODE
         try
             j_score_emphysema(hr2_filepath,left_lung_filepath,right_lung_filepath,results_dirpath,qa_dirpath);
         catch ME
-            ME.throw()
             ERROR_CODE=-1;
             codes=[codes ' ' num2str(ERROR_CODE)];
         end 
@@ -112,6 +124,8 @@ parfor i=1:size(paths,1)
     % PREPARE FINAL ERROR MESSAGE ======================================================
     if ~ERROR_CODE
         message='SUCCESS';
+    elseif ERROR_CODE==5
+        message='SKIPPING';
     else
         message=sprintf('ERRORS:[%s]',codes);
     end
@@ -125,10 +139,6 @@ t_total=toc(t_ref);
 fprintf(1,'Total elapsed time: %.2f s\n',t_total);
 
 end
-
-
-
-
 
 function log(verbose_flag,string,varargin)
     if verbose_flag    

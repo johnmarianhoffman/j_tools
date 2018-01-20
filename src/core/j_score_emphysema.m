@@ -157,7 +157,7 @@ overlay_png=uint8(255*overlay_png);
 
 % RA-950 scoring
 ra_950_mask=(logical(slice_lungs)&(slice_img<=-950));
-ra_950_png=j_overlay(slice_img,ra_950_mask,[102, 21, 26]/255,0.4,[-1400 200]);
+ra_950_png=j_overlay(slice_img,ra_950_mask,[255,0, 0]/255,0.4,[-1400 200]);
 ra_950_png=uint8(255*ra_950_png);
 
 log(verbose,'Saving visualizations to disk...\n');

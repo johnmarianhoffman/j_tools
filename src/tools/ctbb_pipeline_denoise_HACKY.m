@@ -30,18 +30,6 @@ function ctbb_pipeline_denoise_HACKY(library,ext)
             item_count=item_count+1;
 
             % Because we had a failure, we need to skip the first N cases up to the one below
-            if isequal(skip_flag,true)
-                if ~isequal(curr_case,'/data/DefAS_Full/library/recon/50/e8640a2cf09131bb20d91b38b0f2350f_k2_st1.0/img/e8640a2cf09131bb20d91b38b0f2350f_d50_k2_st1.0.hr2')&&skip_flag
-                    fprintf(1,'%s\n',curr_case);
-                    complete=add(complete,curr_case);                    
-                    continue
-                else
-                    fprintf(1,'%s\n',curr_case);
-                    fprintf('Complete up to item %d\n',item_count-1)
-                    skip_flag=false;                
-                end
-            end
-
             try
                 if curr_case
 

@@ -2,7 +2,6 @@ function save_qia_roi(output_filepath,mask)
 global output;
 global pointer;
 pointer=0;
-disp('Assuming we have 512x512 images')
 
 % Write order:
 
@@ -32,7 +31,6 @@ save_to_output(n_z);
 
 % Travel over each slice
 for i=1:size(mask,3)
-    disp(i)
     curr_slice=mask(:,:,i);
 
     if sum(curr_slice(:))==0

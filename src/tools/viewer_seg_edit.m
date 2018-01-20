@@ -23,6 +23,7 @@ function h=viewer_seg_edit(image_stack,seg)
     handles.image_stack=image_stack;
     handles.clims=[-1400 200];%[min(img_1(:)) max(img_1(:))];
     handles.flags.isplaying=false;
+    handles.flags.isedited=false;
     handles.play_speed=1;
     handles.previous_save_location=pwd;
     handles.editing=0;
@@ -72,8 +73,7 @@ function keypress_callback(hObject,eventdata)
             disp('Region-Growing Add Mode');
             auto_add();
           case 'escape'
-            stop_editing();
-            
+            stop_editing();            
           case 'd'
             r=j_imellipse('1',handles.axes);
             %r.addSecondaryPositionCallback(@wed_update)
@@ -116,7 +116,7 @@ function keypress_callback(hObject,eventdata)
         % control codes
         switch eventdata.Key
           case 'q' % quit/close
-            delete(handles.fig)
+            delete(handles.fig);
           case 'w' % quit/close
             delete(handles.fig);
           case 'f' % next image (emacs)
@@ -137,12 +137,15 @@ function keypress_callback(hObject,eventdata)
     end
 
     function save_mask()
-        [f,p]=uiputfile({'*.roi','save_roi'});
-        if isequal(f,0)
-           return; 
-        end
-        save_qia_roi(fullfile(p,f),permute(handles.mask,[2 1 3]));
+        filepath='/tmp/lung.roi';
+        %[f,p]=uiputfile({'*.roi','save_roi'});
+        %if isequal(f,0)
+        %   return; 
+        %end
+        save_qia_roi(filepath,permute(handles.mask,[2 1 3]));
         disp('Done saving ROI')
+        handles.flags.isedited=false;
+        guidata(handles.fig,handles);
     end
 
     
@@ -168,9 +171,10 @@ function keypress_callback(hObject,eventdata)
             m=createMask(r,handles.img);
             handles.mask(:,:,handles.curr_image) = (handles.mask(:,:,handles.curr_image) | m);
             delete(r)
+            handles.flags.isedited=true;
             guidata(handles.fig,handles)
             update(handles.fig)
-        end 
+        end
     end
 
     function freehand_sub()
@@ -197,8 +201,10 @@ function keypress_callback(hObject,eventdata)
             handles.mask(:,:,handles.curr_image)=curr_mask;
             %handles.mask(:,:,handles.curr_image) = (handles.mask(:,:,handles.curr_image) | m);
             delete(r)
+            handles.flags.isedited=true;            
             guidata(handles.fig,handles)
             update(handles.fig)
+
         end 
     end
 
@@ -235,8 +241,10 @@ function keypress_callback(hObject,eventdata)
             % Update mask
             handles.mask(:,:,handles.curr_image)=(handles.mask(:,:,handles.curr_image)|m);
             delete(r)
+            handles.flags.isedited=true;            
             guidata(handles.fig,handles)
             update(handles.fig)
+
         end         
     end
    
