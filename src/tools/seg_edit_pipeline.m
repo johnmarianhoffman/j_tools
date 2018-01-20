@@ -19,98 +19,97 @@ for i=1:numel(lines)
     lines{i}=strsplit(lines{i},',');
 end
 
-log(verbose,'========================================\n');
+% open tracking list for cases that need to be rerun
+update_list_fid=fopen(fullfile(lib,'redo_updated_seg_list.txt'),'a');
 
-for i=1:numel(patients)
-    % Build paths to hr2 file and segmentations ==============================
-
-    pipeline_id=find_pipeline_id(patients{i},lines);
-
-    log(verbose,'Starting patient %d/%d %s,%s\n',i,numel(patients),patients{i},pipeline_id);
+try
     log(verbose,'========================================\n');
-    
-    slice_thicknesses=edit_list.(patients{i}).slice_thicknesses;
-    reason=edit_list.(patients{i}).reason;
+    for i=1:numel(patients)
+        % Build paths to hr2 file and segmentations ==============================
 
-    for j=1:numel(slice_thicknesses)
+        pipeline_id=find_pipeline_id(patients{i},lines);
 
-        switch slice_thicknesses{j}
-          case 0.6
-            st='0.6';
-          case 1.0
-            st='1.0';
-          case 2.0
-            st='2.0';
-        end
+        log(verbose,'Starting patient %d/%d %s,%s\n',i,numel(patients),patients{i},pipeline_id);
+        log(verbose,'========================================\n');
         
-        study_dirpath=fullfile(lib,...
-                              'recon',...
-                              '100',...
-                              sprintf('%s_k1_st%s',pipeline_id,st));
+        slice_thicknesses=edit_list.(patients{i}).slice_thicknesses;
+        reason=edit_list.(patients{i}).reason;
 
-        hr2_filepath        = fullfile(study_dirpath,'img',sprintf('%s_d100_k1_st%s.hr2',pipeline_id,st));
-        left_lung_filepath  = fullfile(study_dirpath,'seg','left_lung.roi');
-        right_lung_filepath = fullfile(study_dirpath,'seg','right_lung.roi');
+        for j=1:numel(slice_thicknesses)
 
-        copyfile(left_lung_filepath,[left_lung_filepath '_org']);
-        copyfile(right_lung_filepath,[right_lung_filepath '_org']);        
+            switch slice_thicknesses{j}
+              case 0.6
+                st='0.6';
+              case 1.0
+                st='1.0';
+              case 2.0
+                st='2.0';
+            end
+            
+            study_dirpath=fullfile(lib,...
+                                   'recon',...
+                                   '100',...
+                                   sprintf('%s_k1_st%s',pipeline_id,st));
 
-        tmp_name=tempname;
-        temp_img=[tmp_name '.img'];
-        temp_hr2=[tmp_name '.hr2'];
+            hr2_filepath        = fullfile(study_dirpath,'img',sprintf('%s_d100_k1_st%s.hr2',pipeline_id,st));
+            left_lung_filepath  = fullfile(study_dirpath,'seg','left_lung.roi');
+            right_lung_filepath = fullfile(study_dirpath,'seg','right_lung.roi');
 
-        % Convert hr2 file into img and load
-        log(verbose,'Loading image data: %s...\n',hr2_filepath);
-        system(sprintf('python3 %s %s %s',hr2_script_path,hr2_filepath,temp_img));
-        stack=read_disp_recon_512(temp_img);
-        delete(temp_img);
-        delete(temp_hr2);        
-        
-        % Load ROIs
-        log(verbose,'Loading left lung: %s...\n',left_lung_filepath);
-        left=load_qia_roi(left_lung_filepath);
+            copyfile(left_lung_filepath,[left_lung_filepath '_org']);
+            copyfile(right_lung_filepath,[right_lung_filepath '_org']);        
 
-        log(verbose,'Loading right lung: %s...\n',right_lung_filepath);
-        right=load_qia_roi(right_lung_filepath);
+            tmp_name=tempname;
+            temp_img=[tmp_name '.img'];
+            temp_hr2=[tmp_name '.hr2'];
 
-        n_slices_stack=size(stack,3);
-        n_slices_left=size(left,3);
-        n_slices_right=size(right,3);
+            % Convert hr2 file into img and load
+            log(verbose,'Loading image data: %s...\n',hr2_filepath);
+            system(sprintf('python3 %s %s %s',hr2_script_path,hr2_filepath,temp_img));
+            stack=read_disp_recon_512(temp_img);
+            delete(temp_img);
+            delete(temp_hr2);        
+            
+            % Load ROIs
+            log(verbose,'Loading left lung: %s...\n',left_lung_filepath);
+            left=load_qia_roi(left_lung_filepath);
 
-        left=cat(3,left,zeros(512,512,n_slices_stack-n_slices_left));
-        right=cat(3,right,zeros(512,512,n_slices_stack-n_slices_right));
+            log(verbose,'Loading right lung: %s...\n',right_lung_filepath);
+            right=load_qia_roi(right_lung_filepath);
 
-        assignin('base','stack',stack);
-        assignin('base','left',left);
-        assignin('base','right',right);
+            n_slices_stack=size(stack,3);
+            n_slices_left=size(left,3);
+            n_slices_right=size(right,3);
 
-        % Edit the segmentations and save to tmp path
-        h=viewer_seg_edit(stack,left);
-        t=text(20,20,strjoin(reason,'\n'));
-        set(t,'color','white');
+            left=cat(3,left,zeros(512,512,n_slices_stack-n_slices_left));
+            right=cat(3,right,zeros(512,512,n_slices_stack-n_slices_right));
 
-        waitfor(h)
-        movefile('/tmp/lung.roi','/tmp/right_lung.roi');
-        
-        h=viewer_seg_edit(stack,right);
-        t=text(20,20,strjoin(reason,'\n'));
-        set(t,'color','white');
+            assignin('base','stack',stack);
+            assignin('base','left',left);
+            assignin('base','right',right);
 
-        waitfor(h)
-        movefile('/tmp/lung.roi','/tmp/right_lung.roi');
+            % Edit the segmentations and save to tmp path
+            h=viewer_seg_edit(stack,left);
+            t=text(20,20,strjoin(reason,'\n'));
+            set(t,'color','white');
 
-        % Push updated segmentations back to library
-        if dry_run
+            waitfor(h)
+            movefile('/tmp/lung.roi','/tmp/right_lung.roi');
+            
+            h=viewer_seg_edit(stack,right);
+            t=text(20,20,strjoin(reason,'\n'));
+            set(t,'color','white');
+
+            waitfor(h)
+            movefile('/tmp/lung.roi','/tmp/right_lung.roi');
+
+            % Push updated segmentations back to library
             for ii=[100 50 25 10]
-                for jj=[1 2 3]
-
-                    outdose=num2str(ii);
-                    
+                for jj=[1 2 3]                        
+                    outdose=num2str(ii);                        
                     output_study_dirpath=fullfile(lib,...
-                              'recon',...
-                              outdose,...
-                              sprintf('%s_k%s_st%s',pipeline_id,num2str(jj),st));
-
+                                                  'recon',...
+                                                  outdose,...
+                                                  sprintf('%s_k%s_st%s',pipeline_id,num2str(jj),st));
                     output_hr2_path=fullfile(output_study_dirpath,'img',...
                                              sprintf('%s_d%s_k%s_st%s.hr2',pipeline_id,outdose,num2str(jj),st));
 
@@ -120,22 +119,46 @@ for i=1:numel(patients)
                     cmd_l=sprintf('cp %s %s','/tmp/left_lung.roi',output_left_lung);
                     cmd_r=sprintf('cp %s %s','/tmp/right_lung.roi',output_right_lung);
 
-                    log(verbose,'%s\n',output_hr2_path);
-                    log(verbose,'%s\n',cmd_l);
-                    log(verbose,'%s\n',cmd_r);
+                    if dry_run
+                        log(verbose,'DRY-RUN: %s []\n',cmd_l);
+                        log(verbose,'DRY-RUN: %s []\n',cmd_r);
+                    else
+                        % Copy left to final destinations
+                        log(verbose,'RUN %s: ',cmd_l);
+                        ret_code=system(cmd_l)
+                        if ~ret_code
+                            log(verbose,'SUCCESS\n');
+                        else
+                            log(verbose,'ERROR [%d]\n',ret_code);
+                        end
+                        
+                        % Copy right to final destinations
+                        log(verbose,'RUN %s: ',cmd_r);
+                        ret_code=system(cmd_r)
+                        if ~ret_code
+                            log(verbose,'SUCCESS\n');
+                        else
+                            log(verbose,'ERROR [%d]\n',ret_code);
+                        end
+
+                        % Add hr2 to rerun list
+                        fprintf(update_list_fid,'%s\n',output_hr2_path);
+                    end
                 end
             end            
+
+            % DELETE segmentations from temporary directory (to prevent accidental overwrite)
+            delete('/tmp/left_lung.roi');
+            delete('/tmp/right_lung.roi');
+
+            log(verbose,'========================================\n');
         end 
-        
-        % DELETE segmentations from temporary directory (to prevent accidental overwrite)
-        delete('/tmp/left_lung.roi');
-        delete('/tmp/right_lung.roi');
 
-        log(verbose,'========================================\n');
-    end 
-
+    end
+catch
+    fclose(update_list_fid);
 end
-
+    fclose(update_list_fid);
 end
 
 function patient_id=find_pipeline_id(internal_id,lines)
