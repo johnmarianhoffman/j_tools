@@ -11,10 +11,10 @@ file_list={file_list.name};
 dicom_stack=zeros(512,512,numel(file_list));
 tmp_stack=cell(1,numel(file_list));
 
-h=waitbar(0,'Loading DICOM stack');
+%h=waitbar(0,'Loading DICOM stack');
 
 for i=1:numel(file_list)
-    waitbar(i/numel(file_list),h,sprintf('%i/%i',i,numel(file_list)));
+    %    waitbar(i/numel(file_list),h,sprintf('%i/%i',i,numel(file_list)));
     if isdicom(fullfile(dicom_dir,file_list{i}))
         dicom_stack(:,:,i)=dicomread(fullfile(dicom_dir,file_list{i}));
         try 
@@ -29,11 +29,10 @@ rescale_slope=header_stack(1).RescaleSlope;
 rescale_intercept=header_stack(1).RescaleIntercept;
 
 % Sort on table_positions/or slice number?
-close(h);
+%close(h);
 
 slice_locations=[header_stack(:).SliceLocation];
 [~,i]=sort(slice_locations);
-disp(mat2str(i))
 tmp_stack=tmp_stack(i);
 for i=1:numel(tmp_stack)
     dicom_stack(:,:,i)=tmp_stack{i};

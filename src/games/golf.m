@@ -19,6 +19,7 @@ function golf(varargin)
     global state;
     global cursor;
     global flag_force_no_collision;
+    global target
         
     % Enumerate states
     states.STABLE=0;
@@ -41,7 +42,7 @@ function golf(varargin)
     ball.prev_pos=ball.pos;    
     ball.velocity=[0,0];
     ball.radius=6;
-    ball.bounce=0.6;
+    ball.bounce=0.4;
     ball.asset=false(2*ball.radius,2*ball.radius);
     ball.energy=0.5*sqrt(ball.velocity(1)^2+ball.velocity(2)^2);      
     coords=linspace(-ball.radius+.5,ball.radius-.5,2*ball.radius);
@@ -79,7 +80,7 @@ function golf(varargin)
     background        = uint8(zeros(sizes.screen_height,sizes.screen_width,3));   
     
     % Image objects
-    f=figure(5);
+    f=figure;
     set(f,'WindowButtonDownFcn',@click_callback,'WindowKeypressFcn',@keypress_callback,'CloseRequestFcn',@close_callback,'WindowButtonMotionFcn',@mouse_move_callback,'ResizeFcn',@resize_callback);
     ax=axes('parent',f);
     set(ax,'units','normalized','position',[0 0 1 1]);
@@ -87,35 +88,36 @@ function golf(varargin)
     img=imshow(screen,'parent',ax);
     diagnostic_overlay=text(20,20,'Framerate: ');
     set(diagnostic_overlay,'color','green');
-    
+
     handles.ax=ax;
     handles.img=img;
     handles.diagnostic_overlay=diagnostic_overlay;
-    guidata(f,handles);    
+    guidata(f,handles);
 
     % Initialize world and screen
-    for i=1:sizes.world_width
-        for j=1:sizes.world_height
-            if j>sizes.world_height/4
-                world(j,i)=1;
-            else
-                world(j,i)=2;
-            end
-        end
-    end
+    %for i=1:sizes.world_width
+    %    for j=1:sizes.world_height
+    %        if j>sizes.world_height/4
+    %            world(j,i)=1;
+    %        else
+    %            world(j,i)=2;
+    %        end
+    %    end
+    %end
+    generate_map(sizes);    
     target=generate_target(sizes);  
     initialize_screen(colors,sizes);
     background=screen;
     
     % Cursor
-    cursor.radius=14;
-    cursor.asset=false(2*cursor.radius,2*cursor.radius);
-    cursor.stable_color=uint8([33 33 33]);
-    cursor.active_color=uint8([239,239,239]);
-    cursor.unavailable_color=uint8([160, 152, 138]);
-    cursor.pos=m_coord;
-    cursor.mouse_line=line([cursor.pos(1) last_click(1)],[cursor.pos(2) last_click(2)],'parent',ax,'color',cursor.active_color,'linestyle','--');
-    cursor.firing_line=line([cursor.pos(1) last_click(1)],[cursor.pos(2) last_click(2)],'parent',ax,'color',cursor.active_color);
+    cursor.radius            = 14;
+    cursor.asset             = false(2*cursor.radius,2*cursor.radius);
+    cursor.stable_color      = uint8([33 33 33]);
+    cursor.active_color      = uint8([239,239,239]);
+    cursor.unavailable_color = uint8([160, 152, 138]);
+    cursor.pos               = m_coord;
+    cursor.mouse_line        =line([cursor.pos(1) last_click(1)],[cursor.pos(2) last_click(2)],'parent',ax,'color',double(cursor.active_color)/256,'linestyle','--');
+    cursor.firing_line       =line([cursor.pos(1) last_click(1)],[cursor.pos(2) last_click(2)],'parent',ax,'color',double(cursor.active_color)/256);
 
     coords=linspace(-cursor.radius+.5,cursor.radius-.5,2*cursor.radius);
     for i=1:2*cursor.radius
@@ -125,9 +127,7 @@ function golf(varargin)
             end
         end
     end   
-    
           
-    
     % Game loop
     counter=0;
     idle_counter=0;
@@ -137,7 +137,7 @@ function golf(varargin)
 
         % TIMING ========================================
         t=tic;
-        pause(1/60)
+        pause(1/1000)
         counter=counter+1;
         if mod(counter,15)==0
             set(diagnostic_overlay,'string',sprintf('Framerate:  %.2f fps | Mouse: %d,%d | State: %d',1/time,round(m_coord(1)),round(m_coord(2)),state));
@@ -157,6 +157,13 @@ function golf(varargin)
             case states.STABLE
                 cursor.pos=m_coord;
                 cursor.pos(2)=sizes.screen_height-m_coord(2);
+                
+                % Check for win condition (ONLY IF STABLE)
+                if norm(ball.pos-target.pos)<2*ball.radius
+                    new_board(colors,sizes);
+                end
+                
+                
             case states.EVOLVING
                 cursor.pos=m_coord;
                 cursor.pos(2)=sizes.screen_height-m_coord(2);
@@ -189,7 +196,7 @@ function golf(varargin)
                     end
                     ball.pos=ball.pos+ball.velocity*time;
                     
-                    if norm(ball.velocity)<2
+                    if norm(ball.velocity)<0.5
                         ball.velocity=[0,0];
                         state=states.STABLE;
                     end
@@ -214,6 +221,8 @@ function golf(varargin)
         else
             time=1/60;
         end
+        
+        
         
     end
     
@@ -358,7 +367,7 @@ function [tf,type,normal]=is_collision(sizes,pos)
                     angle=2*(ii-1)*pi/n_samples;
                     x=ball.radius*cos(angle)+pos(1);
                     y=ball.radius*sin(angle)+pos(2);
-                    if world(round(y),round(x))==2
+                    if world(round(y),max(round(x),1))==2
                         v=pos-[x,y];
                         normal=normal+v;
                     end                    
@@ -391,6 +400,8 @@ for i=1:sizes.target_width
         world(target.pos(2)-j,i+target.pos(1)-sizes.target_width/2)=1;
     end
 end
+
+target.pos(2)=target.pos(2)-sizes.target_depth;
 
 end
 
@@ -445,40 +456,76 @@ function generate_map(sizes)
 
     global world;
 
-    variation_factor=8; % Increasing this will make more bumps
+    variation_factor=4; % Increasing this will make more bumps
 
-    slopes=[0 15 30 45 60 75 90];
+    slopes=[0 15 30 45 60 75];
     
-    max_height=5/8*sizes.world_height;
-    min_height=1/8*sizes.world_height;
+    max_height=round(5/8*sizes.world_height);
+    min_height=round(1/8*sizes.world_height);
 
-    x=0;
-    y=randi([max_height,min_height],1,1);
-
-    curr_point=[x,y];
-    target_point=[0,0];
+    x=1;
+    y=round(sizes.world_height/8);      
     
-    while curr_point(1)<sizes.world_width
+    while x<sizes.world_width
         
-        curr_point=curr_point+[1,0];
-        
-        % Calculate the x distance we'll move
-        run=randi([1,sizes.world_width/variation_factor]);
-
-        % grab a slope
-        n=randi([1,7],1,1);
-        m=atand(slopes(n));
-        if randi([0,1],1,1)
-            m=-m;
+        % Grab a slope
+        if x<sizes.world_width/8
+            m=0;
+        else
+            n=randi([1,numel(slopes)],1,1);
+            m=tand(slopes(n));
+            if randi([0,1],1,1)
+                m=-m;
+            end
         end
         
-        % step through columns and fill in everything below our line
-        %for i=1:
+        % Grab a run
+        run = randi(round(sizes.world_width/variation_factor),1,1);
         
-
+        % Compute the target point
+        % y=mx+b b=y-mx
+        b=y-m*x;
+        line=@(x) m*x+b;
+                
+        offset=x;
+        for i=1:run
+            curr_col=i+offset;
+            curr_height=min(max(line(i+offset),min_height),max_height);
+            col=1:sizes.world_height;
+            
+            ground=(col<=curr_height);
+            sky=(col>curr_height);
+            
+            col(ground)=2;
+            col(sky)=1;
+            
+            world(:,i+x)=col;            
+            
+        end        
+        x=offset+run;
+        y=min(max(line(i+offset),min_height),max_height);
     end
-    
-    
 
 
+end
+function new_board(colors,sizes)
+
+global ball
+global background
+global target
+global screen
+global state
+
+% Reset the map
+generate_map(sizes);
+target=generate_target(sizes);
+initialize_screen(colors,sizes);
+background=screen;
+
+% Reset the ball
+ball.pos=ball.start_pos;
+ball.velocity=[0,0];
+
+% Set state to evolving
+state=1;
 end
