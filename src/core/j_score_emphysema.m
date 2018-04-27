@@ -157,7 +157,15 @@ overlay_png=uint8(255*overlay_png);
 
 % RA-950 scoring
 ra_950_mask=(logical(slice_lungs)&(slice_img<=-950));
-ra_950_png=j_overlay(slice_img,ra_950_mask,[255,0, 0]/255,0.4,[-1400 200]);
+ra_950_png=j_overlay(slice_img,ra_950_mask,[255,0, 0]/255,0.6,[-1400 200]);
+% outline boundaries
+seg_borders=bwboundaries(slice_lungs);
+for k=1:length(seg_borders)
+    boundary=seg_borders{k};
+    for j=1:size(boundary,1)
+        ra_950_png(boundary(j,1),boundary(j,2),:)=[0,1,0];
+    end
+end
 ra_950_png=uint8(255*ra_950_png);
 
 log(verbose,'Saving visualizations to disk...\n');

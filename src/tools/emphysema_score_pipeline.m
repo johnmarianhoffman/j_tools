@@ -6,7 +6,7 @@ function emphysema_score_pipeline(library,ref_library,varargin)
 %
 %  Both library paths need to be absolute. I guarantee nothing if they are not.
 
-skip_existing=true;
+skip_existing=false;
 verbose=true;
 case_list_file=fullfile(library,'hr2_list.txt');
 
@@ -18,7 +18,8 @@ if skip_existing
 end 
 
 if ~isempty(varargin)
-    paths=varargin;
+    log(verbose,'Using case list passed to function (i.e. not reading from library...)\n')
+    paths=varargin{1};
 else
     % Get file list
     log(verbose,'Generating case list  (this may take a while)...\n');
@@ -40,7 +41,7 @@ end
 
 t_ref=tic;
 
-parfor i=1:size(paths,1)
+parfor i=1:numel(paths)
     ERROR_CODE=0;
     codes='';
     t_ind=tic;

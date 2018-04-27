@@ -1,7 +1,7 @@
 function lookup=seg_edit_pipeline(lib,seg_edit_list)
 
 verbose=true;
-dry_run=true;
+dry_run=false;
     
 hr2_script_path='/home/john/Code/CTBB_Pipeline_Package/CTBB_Pipeline/src/read_hr2.py';
 
@@ -70,11 +70,19 @@ try
             delete(temp_hr2);        
             
             % Load ROIs
-            log(verbose,'Loading left lung: %s...\n',left_lung_filepath);
-            left=load_qia_roi(left_lung_filepath);
+            try
+                log(verbose,'Loading left lung: %s...\n',left_lung_filepath);
+                left=load_qia_roi(left_lung_filepath);
+            catch
+                log(verbose,'ERROR loading left lung.  Continuing to next case...')
+            end
 
-            log(verbose,'Loading right lung: %s...\n',right_lung_filepath);
-            right=load_qia_roi(right_lung_filepath);
+            try
+                log(verbose,'Loading right lung: %s...\n',right_lung_filepath);
+                right=load_qia_roi(right_lung_filepath);
+            catch
+                log(verbose,'ERROR loading right lung.  Continuing to next case...')                
+            end
 
             n_slices_stack=size(stack,3);
             n_slices_left=size(left,3);
@@ -88,20 +96,38 @@ try
             assignin('base','right',right);
 
             % Edit the segmentations and save to tmp path
-            h=viewer_seg_edit(stack,left);
-            t=text(20,20,strjoin(reason,'\n'));
-            set(t,'color','white');
+            no_seg=true;
+            while no_seg
+                h=viewer_seg_edit(stack,left);
+                t=text(20,20,strjoin(reason,'\n'));
+                set(t,'color','white');
 
-            waitfor(h)
-            movefile('/tmp/lung.roi','/tmp/right_lung.roi');
+                waitfor(h)
+                try
+                    movefile('/tmp/lung.roi','/tmp/left_lung.roi');
+                    no_seg=false;
+                catch
+                    log(verbose,'No segmentation saved! Redoing left lung!\n')
+                    no_seg=true;
+                end
+            end
+
+            no_seg=true;
+            while no_seg
+                h=viewer_seg_edit(stack,right);
+                t=text(20,20,strjoin(reason,'\n'));
+                set(t,'color','white');
+
+                waitfor(h)
+                try
+                    movefile('/tmp/lung.roi','/tmp/right_lung.roi');
+                    no_seg=false;
+                catch
+                    log(verbose,'No segmentation saved! Redoing right lung!\n')
+                    no_seg=true;
+                end
+            end
             
-            h=viewer_seg_edit(stack,right);
-            t=text(20,20,strjoin(reason,'\n'));
-            set(t,'color','white');
-
-            waitfor(h)
-            movefile('/tmp/lung.roi','/tmp/right_lung.roi');
-
             % Push updated segmentations back to library
             for ii=[100 50 25 10]
                 for jj=[1 2 3]                        
@@ -125,7 +151,7 @@ try
                     else
                         % Copy left to final destinations
                         log(verbose,'RUN %s: ',cmd_l);
-                        ret_code=system(cmd_l)
+                        ret_code=system(cmd_l);
                         if ~ret_code
                             log(verbose,'SUCCESS\n');
                         else
@@ -134,7 +160,7 @@ try
                         
                         % Copy right to final destinations
                         log(verbose,'RUN %s: ',cmd_r);
-                        ret_code=system(cmd_r)
+                        ret_code=system(cmd_r);
                         if ~ret_code
                             log(verbose,'SUCCESS\n');
                         else

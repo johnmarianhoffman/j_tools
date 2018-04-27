@@ -93,7 +93,7 @@ function keypress_callback(hObject,eventdata)
           case 'w' % access window level
             set_contrast();
           case 't'
-            edit_mask();
+            transpose_mask();
           case 's'
             save_mask();
             %answer=inputdlg('Enter a variable name:');
@@ -143,7 +143,7 @@ function keypress_callback(hObject,eventdata)
         %if isequal(f,0)
         %   return; 
         %end
-        save_qia_roi(filepath,permute(handles.mask,[2 1 3]));
+        save_qia_roi(filepath,handles.mask);
         fprintf(1,'DONE\n');
         handles.flags.isedited=false;
         guidata(handles.fig,handles);
@@ -296,6 +296,12 @@ function keypress_callback(hObject,eventdata)
         
         handles.clims=get(handles.axes,'clim');
         guidata(handles.fig,handles);
+    end
+
+    function transpose_mask()
+        handles.mask=permute(handles.mask,[2 1 3]);
+        guidata(handles.fig,handles);
+        update(handles.fig);
     end
 
     function edit_mask()

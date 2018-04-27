@@ -13,8 +13,13 @@ if nargin==6
 end
 
 % Rescale image, using window and level, between 0 and 1
-img=apply_window(img,window);
-img=repmat(img,1,1,3);
+if ~isempty(window)
+    img=apply_window(img,window);
+end
+
+if size(img,3)==1
+    img=repmat(img,1,1,3);
+end
 
 disp('')
 for i=1:3

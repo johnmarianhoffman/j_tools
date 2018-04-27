@@ -80,7 +80,7 @@ function golf(varargin)
     background        = uint8(zeros(sizes.screen_height,sizes.screen_width,3));   
     
     % Image objects
-    f=figure(5);
+    f=figure;
     set(f,'WindowButtonDownFcn',@click_callback,'WindowKeypressFcn',@keypress_callback,'CloseRequestFcn',@close_callback,'WindowButtonMotionFcn',@mouse_move_callback,'ResizeFcn',@resize_callback);
     ax=axes('parent',f);
     set(ax,'units','normalized','position',[0 0 1 1]);
@@ -88,11 +88,11 @@ function golf(varargin)
     img=imshow(screen,'parent',ax);
     diagnostic_overlay=text(20,20,'Framerate: ');
     set(diagnostic_overlay,'color','green');
-    
+
     handles.ax=ax;
     handles.img=img;
     handles.diagnostic_overlay=diagnostic_overlay;
-    guidata(f,handles);    
+    guidata(f,handles);
 
     % Initialize world and screen
     %for i=1:sizes.world_width
@@ -110,14 +110,14 @@ function golf(varargin)
     background=screen;
     
     % Cursor
-    cursor.radius=14;
-    cursor.asset=false(2*cursor.radius,2*cursor.radius);
-    cursor.stable_color=uint8([33 33 33]);
-    cursor.active_color=uint8([239,239,239]);
-    cursor.unavailable_color=uint8([160, 152, 138]);
-    cursor.pos=m_coord;
-    cursor.mouse_line=line([cursor.pos(1) last_click(1)],[cursor.pos(2) last_click(2)],'parent',ax,'color',cursor.active_color,'linestyle','--');
-    cursor.firing_line=line([cursor.pos(1) last_click(1)],[cursor.pos(2) last_click(2)],'parent',ax,'color',cursor.active_color);
+    cursor.radius            = 14;
+    cursor.asset             = false(2*cursor.radius,2*cursor.radius);
+    cursor.stable_color      = uint8([33 33 33]);
+    cursor.active_color      = uint8([239,239,239]);
+    cursor.unavailable_color = uint8([160, 152, 138]);
+    cursor.pos               = m_coord;
+    cursor.mouse_line        =line([cursor.pos(1) last_click(1)],[cursor.pos(2) last_click(2)],'parent',ax,'color',double(cursor.active_color)/256,'linestyle','--');
+    cursor.firing_line       =line([cursor.pos(1) last_click(1)],[cursor.pos(2) last_click(2)],'parent',ax,'color',double(cursor.active_color)/256);
 
     coords=linspace(-cursor.radius+.5,cursor.radius-.5,2*cursor.radius);
     for i=1:2*cursor.radius
@@ -127,9 +127,7 @@ function golf(varargin)
             end
         end
     end   
-    
           
-    
     % Game loop
     counter=0;
     idle_counter=0;
@@ -139,7 +137,7 @@ function golf(varargin)
 
         % TIMING ========================================
         t=tic;
-        pause(1/60)
+        pause(1/1000)
         counter=counter+1;
         if mod(counter,15)==0
             set(diagnostic_overlay,'string',sprintf('Framerate:  %.2f fps | Mouse: %d,%d | State: %d',1/time,round(m_coord(1)),round(m_coord(2)),state));
@@ -198,7 +196,7 @@ function golf(varargin)
                     end
                     ball.pos=ball.pos+ball.velocity*time;
                     
-                    if norm(ball.velocity)<2
+                    if norm(ball.velocity)<0.5
                         ball.velocity=[0,0];
                         state=states.STABLE;
                     end
