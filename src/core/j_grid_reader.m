@@ -1,4 +1,10 @@
-function grid = j_grid_reader(filepath)
+function grid = j_grid_reader(filepath,type)
+
+    if nargin<2
+        type = 'float32';
+        fprintf('Grid type defaulting to ''%s''\n',type);
+    end
+    
 
     if (~exist(filepath,'file'))
         fprintf('File does not exist! (%s)\n',filepath);
@@ -28,8 +34,8 @@ function grid = j_grid_reader(filepath)
 
     grid.half_res_2 = fread(fid,1,'float32');
 
-    grid.data = reshape(fread(fid,grid.nvox,'uint8'),grid.nx,grid.ny,grid.nz);
-    %grid.data = reshape(fread(fid,grid.nvox,'float32'),grid.nx,grid.ny,grid.nz);
+    grid.data = reshape(fread(fid,grid.nvox,type),grid.nx,grid.ny,grid.nz);
+
     
     fclose(fid);
 end

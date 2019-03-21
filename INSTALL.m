@@ -1,4 +1,4 @@
-fprintf('We're disabling name shadowing warnings since we abuse these.\n');
+fprintf('We''re disabling name shadowing warnings since we abuse these.\n');
 warning('off','MATLAB:dispatcher:nameConflict');
 
 addpath(fullfile(pwd,'src/core/'));

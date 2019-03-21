@@ -1,22 +1,27 @@
 function surface_viewer(surface_grid)
 
+% Preprocess the surface_grid
+    non_zeros = round(1024*surface_grid(surface_grid~=0)/10);    
+    cmap = j_stoplight(1024);
+
     if nargin<1    
         s = generate_sphere(40);
-        [x,y,z] = ind2sub(size(s),find(s==1));
+        [x,y,z] = ind2sub(size(s),find(s~=0));
+        c = squeeze(ind2rgb(non_zeros(:),cmap));
     else
-        [x,y,z] = ind2sub(size(surface_grid),find(surface_grid==1));
+        [x,y,z] = ind2sub(size(surface_grid),find(surface_grid~=0));
+        c = squeeze(ind2rgb(non_zeros(:),cmap));
     end
 
     handles.f       = figure;
     handles.pc_data = [z,y,max(x(:))-x];
-    handles.ax      = pcshow(handles.pc_data);
+    handles.ax      = pcshow(handles.pc_data,c);
     handles.pc      = get(handles.ax,'children');
     set(handles.ax,'Toolbar',[]);
     xlabel('x');
     ylabel('y');    
     zlabel('z');
 
-    
     zoom('off');
     pan('off');
     rotate3d('off');
@@ -48,7 +53,6 @@ end
 
 function keypress_callback(h,e)
     handles = guidata(h);
-    disp(e.Key)
     switch e.Key
       case 'w'
         campos(campos()+handles.velocity*handles.cam_dir);
@@ -102,7 +106,6 @@ function mousemotion_callback(h,e)
 
     if handles.button_down
         offset = get(handles.f,'currentpoint') - handles.start_point;
-        disp(offset)
         camtarget(handles.prev_target+.25*offset(2)*camup()+.25*offset(1)*handles.cam_x);
     end
 
@@ -110,7 +113,6 @@ end
 
 function buttondown_callback(h,e)
     handles = guidata(h);
-    disp(get(handles.f,'WindowButtonMotionFcn'));
     handles.button_down = true;
     handles.start_point = get(handles.f,'currentpoint');
     
@@ -120,7 +122,6 @@ end
 
 function buttonup_callback(h,e)
     handles = guidata(h);
-    disp(get(handles.f,'WindowButtonMotionFcn'));
     handles.button_down = false;
     set(handles.f ,'windowbuttonmotionfcn' ,@mousemotion_callback);
 

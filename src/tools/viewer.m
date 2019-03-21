@@ -14,10 +14,25 @@ function h=viewer(image_stack)
     fig_pos=j_PositionVectorConvert([middle(1) middle(2) width height],'c->m');
 
     % Draw GUI
-    handles.fig=figure('ToolBar','none','MenuBar','none','position',fig_pos);
+    %handles.fig=figure('ToolBar','none','MenuBar','none','position',fig_pos);
+    handles.fig = figure('position',fig_pos);
     h=handles.fig;
     fig_pos=get(handles.fig,'position');
     handles.axes=axes('position',[0 0 1 1],'parent',handles.fig);
+
+    % Disable the disabling of user callbacks
+    hManager = uigetmodemanager(handles.fig);
+    disp(hManager);
+    try
+        set(hManager.WindowListenerHandles, 'Enable', 'off');  % HG1
+    catch
+        [hManager.WindowListenerHandles.Enabled] = deal(false);  % HG2
+    end
+    
+    % Set Callbacks
+    set(handles.fig,'WindowKeyPressFcn',[]);
+    set(handles.fig,'KeyPressFcn',@keypress_callback);
+    set(handles.fig,'WindowScrollWheelFcn',@scroll_fcn);
 
     %Set default variables
     handles.curr_image=1;
@@ -30,9 +45,7 @@ function h=viewer(image_stack)
     handles.flags.zoom=false;
     handles.counter=annotation('textbox',[0.02 0.02 .25 .1],'String',sprintf('%i/%i',handles.curr_image,size(handles.image_stack,3)),'backgroundcolor','black','color','white','facealpha',0,'edgecolor','none');
 
-    % Set Callbacks
-    set(handles.fig,'KeyPressFcn',@keypress_callback);
-    set(handles.fig,'WindowScrollWheelFcn',@scroll_fcn);
+    handles.img = imshow(handles.image_stack(:,:,handles.curr_image),handles.clims,'parent',handles.axes);
 
     guidata(handles.fig,handles);
 
@@ -112,28 +125,7 @@ function keypress_callback(hObject,eventdata)
     %eventdata
 
     function set_contrast()
-        try
-            uiwait(imcontrast(handles.fig));
-        catch
-            answer=inputdlg({'Min:','Max:'});
-            if isempty(answer)
-                return;
-            end
-
-            min_v=str2double(answer{1});
-            max_v=str2double(answer{2});
-            
-            if isnan(min_v)||isnan(max_v)
-                return;
-            end
-
-            set(handles.axes,'clim',[min_v,max_v]);
-            
-        end
-        handles.clims=get(handles.axes,'clim');
-        guidata(handles.fig,handles);
-
-        assignin('base','clims',get(gca,'clim'))
+        j_window_level(handles.image_stack(:,:,handles.curr_image),handles.axes);
     end
 
     function set_manual_wl()
@@ -160,9 +152,9 @@ function keypress_callback(hObject,eventdata)
         if e~=0
             return
         end
-        handles.clims=get(handles.axes,'clim')
+        clims=get(handles.axes,'clim')
         
-        save_mat_img(handles.image_stack(:,:,handles.curr_image),handles.clims,fullpath);
+        save_mat_img(handles.image_stack(:,:,handles.curr_image),clims,fullpath);
         [handles.previous_save_location,~,~]=fileparts(fullpath);
         guidata(handles.fig,handles);
     end
@@ -262,7 +254,8 @@ end
 
 function update(fig)
     handles=guidata(fig);
-    imshow(handles.image_stack(:,:,handles.curr_image),handles.clims,'Parent',handles.axes);
+    set(handles.img,'cdata',handles.image_stack(:,:,handles.curr_image));
+    %imshow(handles.image_stack(:,:,handles.curr_image),handles.clims,'Parent',handles.axes);
     set(handles.counter,'string',sprintf('%i/%i',handles.curr_image,size(handles.image_stack,3)));
     drawnow;
 end
