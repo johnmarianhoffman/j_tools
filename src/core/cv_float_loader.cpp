@@ -1,6 +1,22 @@
 #include "mex.h"
 #include "matrix.h"
-#include <opencv2/opencv.hpp> 
+#include <opencv2/opencv.hpp>
+
+// To compile (for linux/mac):
+// make sure to add the returned contents of
+//     $ pkg-config --libs opencv
+// to the 'LINKLIBS' variable in the file at
+//     >> fullfile(prefdir,'mex_C++_glnxa64.xml').
+//
+// At the MATLAB command line, run
+//     >> mex fullfile(j_path,'j_tools/src/core/cv_float_loader.cpp');
+//
+// Call using
+//     >> tmp = cv_float_loader('/path/to/float_mat_yaml_bullshit_file.whatever');
+//
+// Final thoughts: took me way too long to figure this shit out.
+// 
+// John Hoffman 2019 03 26
 
 bool load_cv_matrix(cv::Mat &matrix, size_t &rows, size_t &cols, std::string filepath){
   cv::FileStorage fs (filepath, cv::FileStorage::READ);
