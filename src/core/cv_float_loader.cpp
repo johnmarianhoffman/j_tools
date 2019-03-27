@@ -55,19 +55,19 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]){
 
     if (mxGetString(prhs[0],filepath_c,4096+255) == 0 ){
       filepath_cpp = filepath_c;
-      mexPrintf("String size: %d\n",str_length);
-      mexPrintf("String contents: %s\n",filepath_cpp.c_str());
+      //mexPrintf("String size: %d\n",str_length);
+      //mexPrintf("String contents: %s\n",filepath_cpp.c_str());
     }
     else{
-      mexPrintf("Something went wrong.\n");
+      //mexPrintf("Something went wrong.\n");
     }
 
     cv::Mat m;
     size_t rows,cols;
 
     if (load_cv_matrix(m,rows,cols,filepath_cpp)){
-      mexPrintf("Rows: %d\n",rows);
-      mexPrintf("Cols: %d\n",cols);
+      //mexPrintf("Rows: %d\n",rows);
+      //mexPrintf("Cols: %d\n",cols);
 
       mxArray * array_out = plhs[0] = mxCreateDoubleMatrix(rows,cols,mxREAL);
       double * array_return = mxGetPr(array_out);
