@@ -1,67 +1,20 @@
-function image_ray_viewer(data,confidence_map,depth_map)
+function image_ray_viewer(data,depth_map,confidence_map)
 
 global handles;
     
-if nargin < 1
-    %handles.filepath = '/la/Users/MAGICLEAP/jhoffman/john_farm_output/final_test_rsc_spotlight/image_rays/f001003_camRef51_camComp52.imgrays';
-    handles.filepath = '/la/Users/MAGICLEAP/jhoffman/john_farm_output/final_test_rsc_spotlight/image_rays/f001003_camRef27_camComp28.imgrays';    
-    handles.rays = image_ray_loader(handles.filepath);
-    assignin('base','rays',handles.rays);
-elseif nargin<2
-    handles.rays = data;
-else
-    handles.rays = data;
-    handles.confidence_map = confidence_map;
-end
+handles.rays = data;
+handles.confidence_map = confidence_map;
 
-handles.rays.data = handles.rays.data';
+handles.rays.data = rot90(handles.rays.data,-1);
 
 handles.rays.data{1,1}.start_depth = -10000;
 handles.rays.data{1,1}.step_size = 100;
 handles.rays.data{1,1}.ray_length = 100;
 handles.rays.data{1,1}.data = [1:100];
 
-% Compute the boundary mask and a confidence map
-image_ray_boundary_mask = false(size(handles.rays.data));
-if (nargin<2)
-    handles.confidence_map = zeros(size(handles.rays.data));
-else
-    handles.confidence_map = confidence_map;
-end
-
-%for i = 1:numel(image_ray_boundary_mask)
-%    
-%    if mod(i,4096)==0
-%        fprintf('Row %d/%d\n',i/4096,3000);
-%    end
-%    
-%    if ~isempty(handles.rays.data{i})
-%        image_ray_boundary_mask(i) = true;
-%        
-%        if (nargin<2)
-%            confidence_map(i) = confidence(handles.rays.data{i});
-%        end
-%    end
-%end
-
-if (nargin<2)
-    assignin('base','confidence_map',confidence_map);
-    save('~/Desktop/confidence_map_test.mat','confidence_map','-v7.3');    
-end
-
+handles.image = depth_map;
 handles.rows = 4096;
 handles.cols = 3000;
-
-%handles.img_path = '~/Desktop/depth_map_51.bin';
-%handles.img_path = '~/Desktop/depth_map_18.bin';
-%handles.image = j_bin_float(handles.img_path);
-%handles.image = reshape(handles.image,[handles.rows,handles.cols]);
-handles.image = depth_map;
-assignin('base','depth',handles.image);
-
-tmp = handles.image(handles.image~=0);
-mini = min(tmp(:));
-maxi = max(tmp(:));
 
 handles.f = figure;
 handles.box = uiextras.HBox('parent',handles.f);
@@ -69,13 +22,8 @@ handles.ax_img = axes('parent',handles.box);
 handles.ax_ray = axes('parent',handles.box);
 
 % Draw the image, image ray boundary, and confidence map
-handles.img = imshow(imoverlay(j_imrescale(handles.image,[mini-200,maxi+200],'uint8'),boundarymask(image_ray_boundary_mask)),[],'parent',handles.ax_img);
-hold(handles.ax_img,'on');
-handles.img_confidence_map = imshow(confidence_to_rgb(handles.confidence_map),'parent',handles.ax_img);
-hold(handles.ax_img,'off');
+handles.img = imshow(j_fuse_depth_confidence(depth_map,confidence_map),'parent',handles.ax_img);
 
-alpha = (1-confidence_map); % Good guess are invisible, bad guesses are visible
-set(handles.img_confidence_map,'AlphaData',alpha.*(handles.confidence_map>0));
 handles.curr_point = [handles.cols/2,handles.rows/2];
 handles.point = impoint(handles.ax_img,handles.curr_point(1),handles.curr_point(2));
 
@@ -287,17 +235,8 @@ end
 function rgb = confidence_to_rgb(confidence_map)
     map = stoplight(1024);
     rgb = zeros([size(confidence_map) 3]);
-    
-    for j = 1:size(confidence_map,2)
-        for i = 1:size(confidence_map,1)        
-            if confidence_map(i,j)==0
-                continue
-            else
-                colorID = max(1, sum(confidence_map(i,j) > [0:1/length(map(:,1)):1]));
-                rgb(i,j,:) = map(colorID,:);
-            end
-        end
-    end    
+    colorID = max(1,ceil(confidence_map*1024));
+    rgb = ind2rgb(colorID,map).*(confidence_map~=0);
 end
 
 function s = generate_text_string()

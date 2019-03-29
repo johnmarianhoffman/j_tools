@@ -46,7 +46,7 @@ function f = image_ray_loader(filepath)
                     imr.step_size = fread(fid,1,'float32');
                     imr.ray_length = fread(fid,1,size_t);
                     imr.data = fread(fid,imr.ray_length,'float32');
-                    
+
                     f.data{i,col_start+k-1} = imr;
                     
                 end

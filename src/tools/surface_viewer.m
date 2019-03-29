@@ -15,7 +15,7 @@ function surface_viewer(surface_grid)
 
     handles.f       = figure;
     handles.pc_data = [z,y,max(x(:))-x];
-    handles.ax      = pcshow(handles.pc_data,c);
+    handles.ax      = pcshow(handles.pc_data);
     handles.pc      = get(handles.ax,'children');
     set(handles.ax,'Toolbar',[]);
     xlabel('x');

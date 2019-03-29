@@ -4,8 +4,6 @@ A = double(A);
 a_max = max(A(:));
 a_min = min(A(:));
 
-disp(range);
-
 if isempty(range)
     range = [a_min a_max];
 

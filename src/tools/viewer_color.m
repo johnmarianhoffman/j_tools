@@ -1,7 +1,7 @@
 function viewer_color(cdata_mat)
 imgs = cdata_mat;
 handles.f          = figure;
-handles.ax         = axes('parent',handles.f);
+handles.ax         = axes('parent',handles.f,'position',[0 0 1 1]);
 handles.img        = imshow(squeeze(imgs(:,:,:,1)),'parent',handles.ax);
 handles.curr_image = 1;
 handles.n_images   = size(imgs,4);
