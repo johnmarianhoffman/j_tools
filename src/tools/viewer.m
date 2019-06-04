@@ -15,10 +15,12 @@ function h=viewer(image_stack)
 
     % Draw GUI
     %handles.fig=figure('ToolBar','none','MenuBar','none','position',fig_pos);
-    handles.fig = figure('position',fig_pos);
+    handles.fig = figure('position',fig_pos);    
     h=handles.fig;
     fig_pos=get(handles.fig,'position');
     handles.axes=axes('position',[0 0 1 1],'parent',handles.fig);
+    addToolbarExplorationButtons(handles.fig);
+    handles.axes.Toolbar.Visible = 'off';
 
     % Disable the disabling of user callbacks
     hManager = uigetmodemanager(handles.fig);

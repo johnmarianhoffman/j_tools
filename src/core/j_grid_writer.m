@@ -1,4 +1,4 @@
-function grid = j_grid_reader(filepath,type)
+function j_grid_writer(filepath,grid)
 
     if nargin<2
         type = 'float32';

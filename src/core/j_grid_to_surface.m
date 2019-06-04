@@ -1,4 +1,4 @@
-function surface_grid = j_create_surface(grid_struct)
+function surface_grid = j_grid_to_surface(grid_struct)
 
     try
         g = grid_struct.data;

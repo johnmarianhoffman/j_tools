@@ -10,6 +10,7 @@ addpath(fullfile(pwd,'src/lib/'));
 addpath(fullfile(pwd,'src/lib/GUILayout/layout/'));
 addpath(fullfile(pwd,'src/tools/'));
 addpath(fullfile(pwd,'src/scratch/'));
+addpath(fullfile(pwd,'src/scratch/surface_meshing/'));
 addpath(fullfile(pwd,'src/games/'));
 
 addpath(genpath(fullfile(pwd,'src/lib/')));

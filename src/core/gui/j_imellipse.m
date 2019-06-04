@@ -156,8 +156,8 @@ classdef j_imellipse < imellipse
             pos=j_PositionVectorConvert(round(getPosition(oime)),'m->c');
             
             mask=createMask(oime);
-            mean_val=mean(oime.info.image(mask));
-            sd_val=std(oime.info.image(mask));
+            mean_val=mean(double(oime.info.image(mask)));
+            sd_val=std(double(oime.info.image(mask)));
             
             oime.info.pos_row=pos(2);
             oime.info.pos_col=pos(1);

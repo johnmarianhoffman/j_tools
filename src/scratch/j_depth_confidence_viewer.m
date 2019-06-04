@@ -1,4 +1,4 @@
-function  img_stack = j_depth_confidence_viewer(d,c)
+function  varargout = j_depth_confidence_viewer(d,c)
 
     img_stack = zeros([size(d,1) size(d,2) 3 size(d,3)]);
 
@@ -9,5 +9,10 @@ function  img_stack = j_depth_confidence_viewer(d,c)
         img_stack(:,:,:,i) = j_fuse_depth_confidence(d(:,:,i),c(:,:,i));
     end
 
+    if nargout>0
+        varargout{1} = img_stack;
+    end
+
     viewer_color(img_stack);
+
 end
