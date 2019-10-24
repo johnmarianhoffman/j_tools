@@ -3,11 +3,7 @@ function j_join_edges(points,connectivity)
 f = figure;
 ax = axes;
 axis('equal')
-for j=1:size(connectivity,2)
-    if mod(j,50)==0
-        drawnow;
-    end
-    
+for j=1:size(connectivity,2)    
     for i=1:size(connectivity,1)
         if (i>j)
             continue
@@ -20,5 +16,6 @@ for j=1:size(connectivity,2)
         end
     end    
 end
+drawnow
 
 end
