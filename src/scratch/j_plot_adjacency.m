@@ -1,4 +1,4 @@
-function j_plot_adjacency(points,adjacency_mat)
+function h=j_plot_adjacency(points,adjacency_mat)
 
     lines = zeros(0,2);
     
@@ -12,6 +12,6 @@ function j_plot_adjacency(points,adjacency_mat)
         end
     end
 
-    line(lines(:,1),lines(:,2));
+    h = line(lines(:,1),lines(:,2));
 
 end
