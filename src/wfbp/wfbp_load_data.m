@@ -1,4 +1,4 @@
-function [ct_geom,projection_data,tube_angles,table_positions] = load_data(dirpath)
+function [ct_geom,projection_data,tube_angles,table_positions] = wfbp_load_data(dirpath)
 
     projection_filepaths = get_file_list(dirpath);
     

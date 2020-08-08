@@ -1,4 +1,4 @@
-function rebinned_projection_data = rebin(projection_data,ct_geom)
+function rebinned_projection_data = wfbp_rebin(projection_data,ct_geom)
 % Row-wise rebin
 % Note, we ignore the "true" tube angle since the offsets will just cancel out
     
@@ -22,7 +22,7 @@ function rebinned_projection_data = rebin(projection_data,ct_geom)
             
             %alpha = theta + beta;% GE Maybe
             alpha = theta - beta;
-            
+                       
             beta_idx = (beta*ct_geom.distance_source_to_detector/ct_geom.detPixSizeCol)+ct_geom.detCentralCol;
             %beta_idx = (beta*ct_geom.distance_source_to_isocenter/ct_geom.detPixSizeCol)+ct_geom.detCentralCol;
             alpha_idx = (alpha)/delta_theta;
